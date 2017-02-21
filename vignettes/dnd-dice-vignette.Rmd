@@ -1,0 +1,127 @@
+---
+title: "Comparing Dice Rolls"
+author: "Norm Bryar"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{DnD Dice}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+The DnD Dice Package has some hand utility functions to help you, 
+as a player, examine the distribution of various dice-roll combinations.  This
+helps you decide which feats, weapons, fighting-styles, etc. to pick
+to match your play-style and expected enemy-characteristics.  
+
+It also has some helper-functions for you as a D.M. to create challenging
+encounters for a party of various levels.
+
+# Creating Die Roll Combinations
+Die rolls are modeled here with  
+- a constant,  
+- list of dice-counts  
+- list of dice-types  
+e.g. `rollDice( dieCt=c(1,1), dieType=c(8,4), adj=1 )`
+
+Typically, you build-up higher-order functions via the `makeRoll` sibling-function:  
+
+```{r, results='as-is'}
+library(dungeonDice)
+poisonLongSword <- makeRoll( c(1,1), c(8,4), 1 )  
+poisonLongSword()
+```  
+
+
+## Composing Die Types
+The simplest composition involves the `multiRoll` helper, e.g.  
+`rapierDag2wf <- multiRoll( c(makeRoll( 1, 8, 2 ), makeRoll(1, 4)) )  
+rapierDag2wf()`
+
+This adds a 1D8+2 rapier damage with a bonus-action attack of 1D4 dmg.  (Assuming, for now, both hit).
+
+### Composing Policies
+
+An optional eval function can model other compositions besides sum, e.g. 
+
+`advantageTohit <- multiRoll( 
+                       c( multiRoll( c(makeRoll(1,20), makeRoll(1,20)), max ),
+                          constRoll( 3 ) ) )`  
+                          
+this takes the better of two 1D20 rolls and adds your +3 proficiency bonus.
+
+Other helper-utilities let you compose conditional results, e.g. for a Paladin's 
+Great Weapon Fighting style-option, you can model a greatsword's damage as 
+
+`oneTwoRerollD6 <- ifSuccessRoll( function(r) {r>2}, makeRoll(1,6), makeRoll(1,6) )
+ greatSwordGWF  <- multiRoll( c(oneTwoRerollD6,oneTwoRerollD6), sum )`
+
+
+## Common Examples
+Attribute Rolls (best 3 of 4D6): `sum( sort( genSamples( 4, makeRoll( 1,6,0 ) ), decreasing=TRUE )[1:3] )` (which we've exported as attribRoll())
+
+Advantage Roll (best 1 of 2D20): `multiRoll( c(rollFunc, rollFunc), max )` (a.k.a. export advantageRoll)
+
+Reliable Taleent (<10 = 10): `multiRoll( c(makeRoll(1,20,0), function(){10}), max )` (a.k.a. reliableTalentRoll)
+
+## Viewing Die Roll Distributions
+What do you suppose this looks like? 
+```{r, fig.show='hold', fig.cap='important plots'}
+plot(1:10)
+plot(10:1)
+```
+
+## Simulations
+Of course, raw damage is only part of the story.  You may want to decide whether your 4th-level Rogue
+should take a DEX gain for +1 ToHit and + 1 Dmg vs. the Savage Attacker feat's advantage to damage.  Probability to hit needs figure into the distribution (as does DEX's affect on Armor Class, Sneak,
+DEX saving-throws, etc., but lets keep this simulation simple for now).
+
+`rapierDex16  <- makeRoll( 1, 8, (2+3) )  # proficiency 2, dex mod 3
+ hitAC16Dex16 <- toHit( 16, 2, 3 )
+ dex16AtkDmg  <- ifelseRoll( hitAC16Dex16, rapierDex16, constRoll(0) )
+
+ rapierDice   <- makeRoll( 1, 8,   0   )  # Savage Attacker re-rolls die only
+ savageRapier <- multiRoll( c(advantageRoll( rapierDice ),
+                              constRoll(2 + 2) ), sum )
+ hitAc16Dex14 <- toHit( 16, 2, 2 )
+ savageAtkDmg <- ifelseRoll( hitAc16Dex14, savageRapier, constRoll(0) )
+ 
+ sim <- abSamples( 10000, dex16AtkDmg, savageAtkDmg )
+ showExp( sim, "Rapier: DEX 16 v. DEx 14 savage" )`
+ 
+ The red 'control' average is slightly better than the blue 'treatment', indicating the DEX gain is your better option here.  
+
+# Creating Monster Encounters
+To help a DM compose a suitable encounter for a party, we started with a representative
+set of Monster Manual XP values for various challenge-ratings, e.g. 
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(monsterCRExp, 10))
+```
+and the DM's-Guide table of multi-opponent XP-multipliers, e.g. 
+```{r, echo=FALSE, results='asis'}
+knitr::kable(head(monsterMultiCR, 10))
+```
+Given an XP budget set by difficulty-category encounter and party-composition, we can 
+enumerate the various encounter sizes by CR-level, via the 
+
+`targetXp <- partyEncounter( cts=c(3,1), lvls=c(5,7), difficulty='Hard' )
+ listEncounters( targetXp )`
+
+Which yields a table of how many monsters (up to 15) at various CRs come close to 
+the target XP value.
+
+## Multi-Challenge-Rating Encounters
+To create a "boss-battle" with a few high-CR opponents and several minions, one approach
+might be to split the tarketXp (e.g. 70%/30%) and call `listEncounters` twice, 
+once for each sub-target value.  
+
+(We don't yet support the variant that all minions have 1HP but otherwise normal AC, attack, and damage stats, but perhaps a DM could approximate this by taking a minion-count as if the CR were half the nominal value).  
+
+
+
+You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
+
+
+Also a quote using `>`:
+
+> "He who gives up [code] safety for [code] speed deserves neither."
+([via](https://twitter.com/hadleywickham/status/504368538874703872))

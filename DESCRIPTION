@@ -1,0 +1,28 @@
+Package: dungeonDice
+Title: Dungeons and Dragons Utility Functions
+Version: 0.1
+Authors@R: person("Norm", "Bryar", email = "NormB@microsoft.com",
+                  role = c("aut", "cre"))
+Description: A set of utility functions for Dungeons and Dragons.
+    Functions include dice-rolling of various combinations of dice-sizes,
+    modeling Advantage and Disadvantage, best M of N rolls, etc.
+    Plotting of die roll distributions helps visualize the effects of
+    upgrades, buffs, etc.
+    Challenge-rating utils help you create encounters for a party.
+    Most die-roll statistics functions should be agnostic to
+    Dungeons and Dragons version,  but 5th Edition was targeted
+    (particularly for encounter challenge utilities).
+Type: Package
+Date: 2016-05-01
+Depends:
+    R (>= 3.1.0)
+License: MIT + file LICENSE
+LazyData: TRUE
+Imports:
+    ggplot2
+Suggests:
+    knitr,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr
+RoxygenNote: 5.0.1
